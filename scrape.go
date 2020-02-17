@@ -1,40 +1,61 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	// "os"
+	"io/ioutil"
+	"log"
+	"net/http"
 
 	"github.com/gocolly/colly"
+	"github.com/labstack/echo/v4"
 )
 
-type post struct {
-	Title string
-	Content string
-	LinkedPost string
+type categories struct {
+		Title	string	`json:"categoryTitle"`
+		Link	string	`json:"categoryLink"`
+		Products	[]product	`json:"categoryProducts`
+}
+
+type product struct {
+	Name	string	`json:"productName"`
+	Image	string	`json:"productImage"`
+	Price	string	`json:"productPrice"`
+}
+
+type JSONData struct {
+	costcoProducts []categories `json:"allProducts"`
 }
 
 // main() contains code adapted from example found in Colly's docs:
 // http://go-colly.org/docs/examples/basic/
 func main() {
-	// Instantiate default collector
+	// Instantiate default collector and echo object
+	e := echo.New()
 	c := colly.NewCollector()
 
-	// On every a element which has href attribute call callback
-	// Get the post
-	c.OnHTML("#thing_t3_ezyl5r", func(e *colly.HTMLElement) {
-		link := e.Attr("href")
-		TopControversialPost := post{Title: e.Text}
-		fmt.Println("\nOriginal Post:")
-		fmt.Printf(link, "\n", TopControversialPost, "\n")
-	})
+	// var datalist []data
+	// var b data
 
-	// Get the link of the post
-	c.OnHTML("#thing_t3_ezyl5r > div.entry.unvoted > div > p.title > a", func(e *colly.HTMLElement) {
-				link := e.Attr("href")
+	// #search-results > div.c_379317 > div > div > div > div
 
-		// Print link
-				fmt.Println("\nLinked Source:")
-				fmt.Printf("%q -> %s\n", e.Text, link)
+	// Get the Category
+	categorySelector := "#search-results > div.c_379317 > div"
+	var datalist []categories
+	var d categories
+
+	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
+		e.ForEach("#search-results > div.c_379317 > div > div > div > div", func(_ int, h *colly.HTMLElement) {
+			var products []product
+
+			categoryName := e.ChildText("#search-results > div.c_379317 > div > div > div > div > a > div.h5-style-guide.eco-ftr-6across-title")
+			categoryLink := e.ChildAttr("div > a", "href")
+			// var categoryCount *int
+			// categoryCount += 1
+
+			d = categories{Title: categoryName, Link: categoryLink, Products: products}
+			datalist = append(datalist, d)
+		})
 	})
 
 	// Before making a request print "Visiting ..."
@@ -42,10 +63,33 @@ func main() {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
-	// Start scraping reddit
-	c.Visit("https://old.reddit.com/r/politics/controversial/")
+	// Start scraping Costco
+	c.Visit("https://www.costco.com/all-costco-grocery.html")
 
-		// Save the title
-		// TopControversialPost := post{Title, e.Text}
-		// os.Stdout
+	ls := JSONData{costcoProducts: datalist}
+
+	e.GET("/scrape", func(f echo.Context) error {
+		return f.JSON(http.StatusOK, ls)
+	})
+
+	c.OnError(func(_ *colly.Response, err error) {
+		log.Println("Something went wrong:", err)
+	})
+
+	c.OnScraped(func(r *colly.Response) {
+		fmt.Println("Finished", r.Request.URL)
+	})
+
+	DataJSONarr, err := json.MarshalIndent(ls, "", "	")
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Hello")
+	e.Logger.Fatal(e.Start(":8000"))
 }
+
