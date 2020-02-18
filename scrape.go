@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gocolly/colly"
 	"github.com/labstack/echo/v4"
@@ -32,8 +33,15 @@ type JSONData struct {
 func main() {
 	// Instantiate default collector and echo object
 	e := echo.New()
-	c := colly.NewCollector()
+	c := colly.NewCollector(
+		colly.AllowURLRevisit(),
+		colly.Async(true),
+	)
 
+	c.Limit(&colly.LimitRule{
+		Delay: 1 * time.Second,
+		RandomDelay: 1 * time.Second,
+	})
 	// var datalist []data
 	// var b data
 
@@ -52,6 +60,8 @@ func main() {
 			categoryLink := e.ChildAttr("div > a", "href")
 			// var categoryCount *int
 			// categoryCount += 1
+
+			// Here I want to go through each link and scrape all products
 
 			d = categories{Title: categoryName, Link: categoryLink, Products: products}
 			datalist = append(datalist, d)
