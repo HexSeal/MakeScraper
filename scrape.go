@@ -17,8 +17,10 @@ type categories struct {
 	// Title is the title of the category
 	// Link is the link of the category
 	// Products is an array of all products in the category
-	Title    string    `json:"categoryTitle"`
-	Link     string    `json:"categoryLink"`
+	// Image is the thumbnail image of the category
+	Title   string	`json:"categoryTitle"`
+	Link    string	`json:"categoryLink"`
+	Image	string	`json:"categoryImage"`
 	// Products []product `json:"categoryProducts"` 
 }
 
@@ -51,17 +53,22 @@ func main() {
 	var categoriesList []categories
 	var categoryName string
 	var categoryLink string
+	var categoryImage string
 
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
 		e.ForEach("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div", func(num int, h *colly.HTMLElement) {
 			// var p []product
+
 			// fmt.Println("Category Number:", num)
 
 			categoryName = e.ChildText("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num + 1) + ") > a")
 			categoryLink = e.ChildAttr("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num + 1) + ") > a", "href")
+			categoryImage = e.ChildAttr("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child("+ strconv.Itoa(num + 1) + ") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
-			d := categories{Title: categoryName, Link: categoryLink}
+
+			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage}
 			categoriesList = append(categoriesList, d)
+			// h.Request.Visit(categoryLink)
 		})
 		fmt.Println(categoriesList)
 	})
@@ -74,18 +81,19 @@ func main() {
 	// 		productLink := g.ChildAttr("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a", "#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description")
 	// 		fmt.Println("Second HTML")
 
-	// 		Adding individual products to the product list
+	// 		// Adding individual products to the product list
 	// 		pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
 	// 		p = append(p, pl)
 	// 	})	
 	// })
+
+
 	// Before making a request print "Visiting ..."
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
-	// Start scraping Costco
-	// c.Visit("https://www.costco.com/all-costco-grocery.html")
+	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
 
 	// Serve to echo
@@ -98,6 +106,7 @@ func main() {
 		log.Println("Something went wrong:", err)
 	})
 
+	// Alert when done scraping
 	c.OnScraped(func(r *colly.Response) {
 		fmt.Println("Finished", r.Request.URL)
 	})
@@ -108,6 +117,7 @@ func main() {
 		panic(err)
 	}
 
+	// Writing the marshalled JSON data to output.json
 	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
 	if err != nil {
 		panic(err)
