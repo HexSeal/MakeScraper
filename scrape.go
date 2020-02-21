@@ -49,25 +49,21 @@ func main() {
 	// Get the Category
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
+	var categoryName string
+	var categoryLink string
 
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
 		e.ForEach("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div", func(num int, h *colly.HTMLElement) {
 			// var p []product
-			fmt.Println("This iteration:", num)
-			currentCount := strconv.Itoa(num + 1)
+			// fmt.Println("Category Number:", num)
 
-			categoryName := string("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + currentCount + ") > a")
-			categoryLink := string("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + currentCount + ") > a")
+			categoryName = e.ChildText("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num + 1) + ") > a")
+			categoryLink = e.ChildAttr("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num + 1) + ") > a", "href")
 			// fmt.Println(categoryName, "\n", categoryLink)
-
-			cName := e.ChildText(categoryName)
-			cLink := e.ChildAttr(categoryLink, "href")
-			fmt.Println(cName,"\n",cLink)
-
-			d := categories{Title: cName, Link: cLink}
+			d := categories{Title: categoryName, Link: categoryLink}
 			categoriesList = append(categoriesList, d)
-			// fmt.Println(categoriesList)
 		})
+		fmt.Println(categoriesList)
 	})
 
 	// c.OnHTML("" , func(b *colly.HTMLElement) {
@@ -91,9 +87,6 @@ func main() {
 	// Start scraping Costco
 	// c.Visit("https://www.costco.com/all-costco-grocery.html")
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
-
-
-	fmt.Println(categoriesList)
 
 	// Serve to echo
 	e.GET("/scrape", func(f echo.Context) error {
