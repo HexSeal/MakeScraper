@@ -21,7 +21,7 @@ type categories struct {
 	Title   string	`json:"categoryTitle"`
 	Link    string	`json:"categoryLink"`
 	Image	string	`json:"categoryImage"`
-	// Products []product `json:"categoryProducts"` 
+	Products []product `json:"categoryProducts"` 
 }
 
 type product struct {
@@ -42,8 +42,9 @@ func main() {
 	e := echo.New()
 	c := colly.NewCollector(colly.Async(true))
 
+	// Limitations so our 
 	c.Limit(&colly.LimitRule{
-		DomainGlob: "costco.com/*",
+		DomainGlob: "https://www.bjs.com/*",
 		RandomDelay: 2 * time.Second,
 		Parallelism: 2,
 	})
@@ -51,6 +52,8 @@ func main() {
 	// Get the Category
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
+	var p []product
+
 	var categoryName string
 	var categoryLink string
 	var categoryImage string
@@ -66,32 +69,32 @@ func main() {
 			categoryImage = e.ChildAttr("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child("+ strconv.Itoa(num + 1) + ") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
 
-			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage}
+			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
 			categoriesList = append(categoriesList, d)
-			// h.Request.Visit(categoryLink)
+			h.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
 		})
-		fmt.Println(categoriesList)
+		// fmt.Println(categoriesList)
 	})
 
-	// c.OnHTML("" , func(b *colly.HTMLElement) {
-	// 	b.ForEach("#search-results > ctl:cache > div.product-list.grid", func(_ int, g *colly.HTMLElement) {
-	// 		productName := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a")
-	// 		productPrice := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > div > div")
-	// 		productImage := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.product-img-holder.link-behavior > div > img")
-	// 		productLink := g.ChildAttr("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a", "#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description")
-	// 		fmt.Println("Second HTML")
+	c.OnHTML("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div" , func(b *colly.HTMLElement) {
+		b.ForEach("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div", func(_ int, g *colly.HTMLElement) {
+			productName := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+			productPrice := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > div.price-block.section > div.display-price > span")
+			productImage := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.section.img-link > img", "src")
+			productLink := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link", "href")
 
-	// 		// Adding individual products to the product list
-	// 		pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
-	// 		p = append(p, pl)
-	// 	})	
-	// })
+			// Adding individual products to the product list
+			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
+			fmt.Println(pl)
+			p = append(p, pl)
+		})	
+	})
 
 
 	// Before making a request print "Visiting ..."
-	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL.String())
-	})
+	// c.OnRequest(func(r *colly.Request) {
+	// 	fmt.Println("Visiting", r.URL.String())
+	// })
 
 	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
@@ -107,9 +110,9 @@ func main() {
 	})
 
 	// Alert when done scraping
-	c.OnScraped(func(r *colly.Response) {
-		fmt.Println("Finished", r.Request.URL)
-	})
+	// c.OnScraped(func(r *colly.Response) {
+	// 	fmt.Println("Finished", r.Request.URL)
+	// })
 
 	// After data is scraped, marshall to JSON
 	DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
