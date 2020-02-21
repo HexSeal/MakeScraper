@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"strconv"
 
 	"github.com/gocolly/colly"
 	"github.com/labstack/echo/v4"
@@ -18,7 +19,7 @@ type categories struct {
 	// Products is an array of all products in the category
 	Title    string    `json:"categoryTitle"`
 	Link     string    `json:"categoryLink"`
-	Products []product `json:"categoryProducts"` 
+	// Products []product `json:"categoryProducts"` 
 }
 
 type product struct {
@@ -30,11 +31,6 @@ type product struct {
 	Image string `json:"productImage"`
 	Price string `json:"productPrice"`
 	Link string `json:"productLink"`
-}
-
-type jSONData struct {
-	// costcoProducts is a list of all products available from Costco
-	CostcoProducts []categories `json:"allProducts"`
 }
 
 // main() contains code adapted from example found in Colly's docs:
@@ -50,53 +46,58 @@ func main() {
 		Parallelism: 2,
 	})
 
-	var ls jSONData
-
 	// Get the Category
-	categorySelector := "#search-results > div.c_379317 > div"
-	var datalist []categories
+	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
+	var categoriesList []categories
 
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
-		fmt.Println("First html before for each")
-		e.ForEach("#search-results > div.c_379317 > div > div > div > div", func(_ int, h *colly.HTMLElement) {
-			var products []product
+		e.ForEach("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div", func(num int, h *colly.HTMLElement) {
+			// var p []product
+			fmt.Println("This iteration:", num)
+			currentCount := strconv.Itoa(num + 1)
 
-			categoryName := e.ChildText("#search-results > div.c_379317 > div > div > div > div > a > div.h5-style-guide.eco-ftr-6across-title")
-			categoryLink := e.ChildAttr("div > a", "href")
-			fmt.Println(categoryName,"\n",categoryLink)
-			fmt.Println("One HTML")
-			// var categoryCount *int
-			// categoryCount += 1
+			categoryName := string("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + currentCount + ") > a")
+			categoryLink := string("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child(" + currentCount + ") > a")
+			// fmt.Println(categoryName, "\n", categoryLink)
 
-			d := categories{Title: categoryName, Link: categoryLink, Products: products}
-			datalist = append(datalist, d)
+			cName := e.ChildText(categoryName)
+			cLink := e.ChildAttr(categoryLink, "href")
+			fmt.Println(cName,"\n",cLink)
 
-			h.ForEach("#search-results > ctl:cache > div.product-list.grid", func(_ int, g *colly.HTMLElement) {
-				productName := e.ChildText("#search-results > ctl:cache > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a")
-				productPrice := e.ChildText("#search-results > ctl:cache > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > div > div")
-				fmt.Println("Second HTML")
-
-				p := product{Name: productName, Price: productPrice}
-				datalist = append(datalist.Products, p)
-			})
-					
+			d := categories{Title: cName, Link: cLink}
+			categoriesList = append(categoriesList, d)
+			// fmt.Println(categoriesList)
 		})
 	})
 
+	// c.OnHTML("" , func(b *colly.HTMLElement) {
+	// 	b.ForEach("#search-results > ctl:cache > div.product-list.grid", func(_ int, g *colly.HTMLElement) {
+	// 		productName := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a")
+	// 		productPrice := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > div > div")
+	// 		productImage := g.ChildText("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.product-img-holder.link-behavior > div > img")
+	// 		productLink := g.ChildAttr("#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description > a", "#search-results > > div.product-list.grid > div > div > div.thumbnail > div.caption.link-behavior > div.caption > p.description")
+	// 		fmt.Println("Second HTML")
+
+	// 		Adding individual products to the product list
+	// 		pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
+	// 		p = append(p, pl)
+	// 	})	
+	// })
 	// Before making a request print "Visiting ..."
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
 	// Start scraping Costco
-	c.Visit("https://www.costco.com/all-costco-grocery.html")
+	// c.Visit("https://www.costco.com/all-costco-grocery.html")
+	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
 
-	ls = jSONData{CostcoProducts: datalist}
-	fmt.Println(ls)
+
+	fmt.Println(categoriesList)
 
 	// Serve to echo
 	e.GET("/scrape", func(f echo.Context) error {
-		return f.JSON(http.StatusOK, ls)
+		return f.JSON(http.StatusOK, categoriesList)
 	})
 
 	// Handle errors
@@ -109,7 +110,7 @@ func main() {
 	})
 
 	// After data is scraped, marshall to JSON
-	DataJSONarr, err := json.MarshalIndent(ls, "", "	")
+	DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +119,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Hello")
+
 	e.Logger.Fatal(e.Start(":8000"))
 
 	c.Wait()
