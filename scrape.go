@@ -44,7 +44,7 @@ func main() {
 
 	// Limitations so our 
 	c.Limit(&colly.LimitRule{
-		DomainGlob: "https://www.bjs.com/*",
+		// DomainGlob: "https://www.bjs.com/*",
 		RandomDelay: 2 * time.Second,
 		Parallelism: 2,
 	})
@@ -58,6 +58,7 @@ func main() {
 	var categoryLink string
 	var categoryImage string
 
+	// Scrape categories
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
 		e.ForEach("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div", func(num int, h *colly.HTMLElement) {
 			// var p []product
@@ -69,15 +70,23 @@ func main() {
 			categoryImage = e.ChildAttr("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div:nth-child("+ strconv.Itoa(num + 1) + ") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
 
+			// Append the category data to the struct
 			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
 			categoriesList = append(categoriesList, d)
-			h.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
+
+			// Get the link for each category and visit it with the next OnHTML request so we can scrape all the products of said category
+			e.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
 		})
-		// fmt.Println(categoriesList)
+		//fmt.Println(categoriesList)
 	})
 
+	// fmt.Println("product onhtml start")
+
+	// For each category, scrape all product data by following the category link
 	c.OnHTML("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div" , func(b *colly.HTMLElement) {
-		b.ForEach("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div", func(_ int, g *colly.HTMLElement) {
+		fmt.Println("Product OnHTML request goes off")
+		b.ForEach("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
+			fmt.Println(count)
 			productName := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
 			productPrice := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > div.price-block.section > div.display-price > span")
 			productImage := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.section.img-link > img", "src")
@@ -110,9 +119,9 @@ func main() {
 	})
 
 	// Alert when done scraping
-	// c.OnScraped(func(r *colly.Response) {
-	// 	fmt.Println("Finished", r.Request.URL)
-	// })
+	c.OnScraped(func(r *colly.Response) {
+		fmt.Println("Finished", r.Request.URL)
+	})
 
 	// After data is scraped, marshall to JSON
 	DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
