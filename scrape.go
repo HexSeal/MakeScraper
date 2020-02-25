@@ -11,6 +11,9 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/labstack/echo/v4"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 type categories struct {
@@ -18,6 +21,7 @@ type categories struct {
 	// Link is the link of the category
 	// Products is an array of all products in the category
 	// Image is the thumbnail image of the category
+	gorm.Model
 	Title   string	`json:"categoryTitle"`
 	Link    string	`json:"categoryLink"`
 	Image	string	`json:"categoryImage"`
@@ -38,6 +42,16 @@ type product struct {
 // main() contains code adapted from example found in Colly's docs:
 // http://go-colly.org/docs/examples/basic/
 func main() {
+	// Initialize gorm and the database
+	// db, err := gorm.Open("sqlite3", "test.db")
+	// if err != nil {
+	// 	panic("failed to connect database")
+	// }
+	// defer db.Close()
+
+	// Migrate the schema
+	// db.AutoMigrate(&Category{})
+
 	// Instantiate default collector and echo object
 	e := echo.New()
 	c := colly.NewCollector(colly.Async(true))
@@ -74,16 +88,30 @@ func main() {
 			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
 			categoriesList = append(categoriesList, d)
 
+			//db.Create(&Category{Title: categoryName, Link: categoryLink, Image: categoryImage})
+			//db.Create(&Category{Title: breakfast, Link: reddit.com, Image: https://i.kym-cdn.com/entries/icons/original/000/027/475/Screen_Shot_2018-10-25_at_11.02.15_AM.png})
+
 			// Get the link for each category and visit it with the next OnHTML request so we can scrape all the products of said category
 			e.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
 		})
 		//fmt.Println(categoriesList)
 	})
 
+	// GORM test, please ignore
+	// // Test GORM by reading the entry with id 1
+	// var testCat Category
+	// db.First(&testCat, 1)
+	// // Update - update product's price to 2000
+	// db.Model(&testCat).Update("Price", 2000)
+	// // Delete - delete product
+	// db.Delete(&testCat)
+
+
+
 	// fmt.Println("product onhtml start")
 
 	// For each category, scrape all product data by following the category link
-	c.OnHTML("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div" , func(b *colly.HTMLElement) {
+	c.OnHTML("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div > div.rightBottom > app-products-container > div > div" , func(b *colly.HTMLElement) {
 		fmt.Println("Product OnHTML request goes off")
 		b.ForEach("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
 			fmt.Println(count)
@@ -107,6 +135,8 @@ func main() {
 
 	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
+
+	// c.Visit("")
 
 	// Serve to echo
 	e.GET("/scrape", func(f echo.Context) error {
