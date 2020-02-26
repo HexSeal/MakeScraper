@@ -38,10 +38,10 @@ type product struct {
 	Link  string `json:"productLink"`
 }
 
-// main() contains code adapted from example found in Colly's docs:
-// http://go-colly.org/docs/examples/basic/
-func main() {
-	// Initialize gorm and the database
+
+
+func scrape() {
+		// Initialize gorm and the database
 	// db, err := gorm.Open("sqlite3", "test.db")
 	// if err != nil {
 	// 	panic("failed to connect database")
@@ -58,17 +58,17 @@ func main() {
 	// Limitations so our
 	c.Limit(&colly.LimitRule{
 		// DomainGlob: "https://www.bjs.com/*",
-		RandomDelay: 2 * time.Second,
-		Parallelism: 2,
+		RandomDelay: 1 * time.Second,
+		// Parallelism: 2,
 	})
 
 	// Get the Category
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
 	var p []product
+	var categoryLink string
 
 	var categoryName string
-	var categoryLink string
 	var categoryImage string
 
 	// Scrape categories
@@ -78,8 +78,8 @@ func main() {
 
 			// fmt.Println("Category Number:", num)
 
-			// Faster: create a string of common html elements, 
-			categoryName = e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num+1) + ") > a")
+			// Faster: create a string of common html elements,
+			categoryName = e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a")
 			categoryLink = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
 			categoryImage = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
@@ -96,23 +96,24 @@ func main() {
 		})
 		//fmt.Println(categoriesList)
 	})
-	c.OnResponse(func(r *colly.Response) {
-	// For each category, scrape all product data by following the category link
-		c.OnHTML("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div > div.rightBottom > app-products-container > div > div", func(b *colly.HTMLElement) {
-			fmt.Println("Product OnHTML request goes off")
-			b.ForEach("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
-				fmt.Println(count)
-				productName := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
-				productPrice := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > div.price-block.section > div.display-price > span")
-				productImage := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.section.img-link > img", "src")
-				productLink := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link", "href")
 
-				// Adding individual products to the product list
-				pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
-				fmt.Println(pl)
-				p = append(p, pl)
-			})
+	// For each category, scrape all product data by following the category link
+	c.OnHTML("app-products-container > div > div", func(b *colly.HTMLElement) {
+		// fmt.Println("Product OnHTML request goes off")
+		fmt.Printf("\nCurrent link: %s", b.Request.URL)
+		b.ForEach("div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
+			productName := g.ChildText("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+			productLink := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link", "href")
+			productPrice := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > div.price-block.section > div.display-price > span")
+			productImage := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.section.img-link > img", "src")
+
+			// Adding individual products to the product list
+			// fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
+			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
+			fmt.Println(pl)
+			p = append(p, pl)
 		})
+		b.Request.Visit(categoryLink)
 	})
 
 	// GORM test, please ignore
@@ -133,7 +134,7 @@ func main() {
 	// visit --> wait for rsponse --> grab --> visit
 	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
-	fmt.Println(categoriesList)
+	// fmt.Println(categoriesList)
 	// c.Visit("")
 
 	// Serve to echo
@@ -156,7 +157,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(categoriesList)
+	// fmt.Println(categoriesList)
 
 	// Writing the marshalled JSON data to output.json
 	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
@@ -167,4 +168,10 @@ func main() {
 	e.Logger.Fatal(e.Start(":8000"))
 
 	c.Wait()
+}
+
+// main() contains code adapted from example found in Colly's docs:
+// http://go-colly.org/docs/examples/basic/
+func main() {
+	scrape()
 }
