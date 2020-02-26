@@ -66,7 +66,7 @@ func scrape() {
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
 	var p []product
-	// var categoryLink string
+	var categoryLink string
 
 	var categoryName string
 	var categoryImage string
@@ -78,21 +78,23 @@ func scrape() {
 
 			// Faster: create a string of common html elements, make those a variables and avoid memory-expensive concatenation
 			categoryName = e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a")
-			categoryLink := e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
+			categoryLink = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
 			categoryImage = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
-
-			// Append the category data to the struct
-			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
-			categoriesList = append(categoriesList, d)
 
 			//db.Create(&Category{Title: categoryName, Link: categoryLink, Image: categoryImage})
 			//db.Create(&Category{Title: breakfast, Link: reddit.com, Image: https://i.kym-cdn.com/entries/icons/original/000/027/475/Screen_Shot_2018-10-25_at_11.02.15_AM.png})
 
 			// Get the link for each category and visit it with the next OnHTML request so we can scrape all the products of said category
 			e.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
+			
+			// Append the category data to the struct
+			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
+			categoriesList = append(categoriesList, d)
 		})
 		//fmt.Println(categoriesList)
+		// e.Request.Visit(categoryLink)
+
 	})
 
 	// For each category, scrape all product data by following the category link
@@ -101,19 +103,17 @@ func scrape() {
 		fmt.Printf("\nCurrent link: %s", b.Request.URL)
 		b.ForEach("div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
 			// fmt.Println(count)
-			// productSelector := "#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > "
 
-			productName := g.ChildText("div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
-			productLink := g.ChildAttr("div > app-product-card > div > a.product-link", "href")
-			productPrice := g.ChildText("div > app-product-card > div > div.price-block.section > div.display-price > span")
-			productImage := g.ChildAttr("div > app-product-card > div > a.section.img-link > img", "src")
+			productName := g.ChildText("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+			productLink := g.ChildAttr("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.product-link", "href")
+			productPrice := g.ChildText("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > div.price-block.section > div.display-price > span")
+			productImage := g.ChildAttr("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.section.img-link > img", "src")
 
 			// Adding individual products to the product list
 			fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
 			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink} 
 			// fmt.Println(pl)
 			p = append(p, pl)
-			// c.Visit(categoryLink)
 		})
 	})
 
@@ -132,7 +132,7 @@ func scrape() {
 	// 	fmt.Println("Visiting", r.URL.String())
 	// })
 
-	// Workflow: visit --> wait for response --> grab --> visit --> grab products --> 
+	// Workflow: visit --> wait for response --> grab --> visit --> grab products --> Write to output.json
 	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
 	// fmt.Println(categoriesList)
@@ -153,7 +153,7 @@ func scrape() {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println(categoriesList)
+	fmt.Println(categoriesList)
 
 
 
