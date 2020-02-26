@@ -1,1 +1,74 @@
-null
+[
+	{
+		"categoryTitle": "Breakfast",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/canned-and-packaged-food/breakfast-food/3000000000000117280?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_Breakfast_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Coffee, Tea, \u0026 Cocoa",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/coffee-tea-and-creamer/3000000000000117029?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/1225_Categories_Coffee_600",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Snacks",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/canned-and-packaged-food/snacks/3000000000000117265?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_Snacks_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Canned \u0026 Packaged Food",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/canned-and-packaged-food/3000000000000117263?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_Pantry_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Beverages",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/beverages/3000000000000018003?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_Beverage_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Candy, Gum, \u0026 Mints",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/canned-and-packaged-food/candy-gum-and-mints/3000000000000212988?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/1225_Categories_Candy_600",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Health \u0026 Beauty",
+		"categoryLink": "https://www.bjs.com/category/health-and-beauty/3000000000000117203?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_PersonalCare_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Cleaning",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/cleaning-and-household-goods/3000000000000117335?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/1225_Categories_Cleaning_600",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Paper Products",
+		"categoryLink": "https://www.bjs.com/category/grocery-household-and-pet/paper-and-plastic/paper-products/3000000000000117351?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/1225_Categories_Paper_600",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Baby \u0026 Kids",
+		"categoryLink": "https://www.bjs.com/category/baby-and-kids/3000000000000117158?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/1225_Categories_Baby_600",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Berkley Jensen",
+		"categoryLink": "https://www.bjs.com/search?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y\u0026visualVariant.nonvisualVariant.mfname=Berkley%20Jensen",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_BerkleyJensen_0430",
+		"categoryProducts": null
+	},
+	{
+		"categoryTitle": "Wellsley Farms",
+		"categoryLink": "https://www.bjs.com/search?visualVariant.nonvisualVariant.gbi_attributes.Sfc=Y\u0026visualVariant.nonvisualVariant.mfname=Wellsley%20Farms",
+		"categoryImage": "https://s7d6.scene7.com/is/image/bjs/SDD_WellsleyFarms_0430",
+		"categoryProducts": null
+	}
+]
