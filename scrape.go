@@ -115,8 +115,9 @@ func scrape() {
 			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink} 
 			// fmt.Println(pl)
 			p = append(p, pl)
+			c.Visit(categoryLink)
 		})
-		c.Visit(categoryLink)
+		
 	})
 
 	// GORM test, please ignore
