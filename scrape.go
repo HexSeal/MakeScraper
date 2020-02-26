@@ -102,18 +102,21 @@ func scrape() {
 		// fmt.Println("Product OnHTML request goes off")
 		fmt.Printf("\nCurrent link: %s", b.Request.URL)
 		b.ForEach("div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
-			productName := g.ChildText("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
-			productLink := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div:nth-child(1) > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.product-link", "href")
-			productPrice := g.ChildText("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > div.price-block.section > div.display-price > span")
-			productImage := g.ChildAttr("#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > div > app-product-card > div > a.section.img-link > img", "src")
+			// fmt.Println(count)
+			// productSelector := "#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > "
+
+			productName := g.ChildText("div:nth-child("+strconv.Itoa(count+1)+") > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+			productLink := g.ChildAttr("div > app-product-card > div > a.product-link", "href")
+			productPrice := g.ChildText("div > app-product-card > div > div.price-block.section > div.display-price > span")
+			productImage := g.ChildAttr("div > app-product-card > div > a.section.img-link > img", "src")
 
 			// Adding individual products to the product list
-			// fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
-			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
-			fmt.Println(pl)
+			fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
+			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink} 
+			// fmt.Println(pl)
 			p = append(p, pl)
 		})
-		b.Request.Visit(categoryLink)
+		c.Visit(categoryLink)
 	})
 
 	// GORM test, please ignore
@@ -125,22 +128,17 @@ func scrape() {
 	// // Delete - delete product
 	// db.Delete(&testCat)
 
-	// fmt.Println("product onhtml start")
 
 	// Before making a request print "Visiting ..."
 	// c.OnRequest(func(r *colly.Request) {
 	// 	fmt.Println("Visiting", r.URL.String())
 	// })
-	// visit --> wait for rsponse --> grab --> visit
+
+	// Workflow: visit --> wait for response --> grab --> visit --> grab products --> 
 	// Start scraping BJ's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
 	// fmt.Println(categoriesList)
 	// c.Visit("")
-
-	// Serve to echo
-	e.GET("/scrape", func(f echo.Context) error {
-		return f.JSON(http.StatusOK, categoriesList)
-	})
 
 	// Handle errors
 	c.OnError(func(_ *colly.Response, err error) {
@@ -159,11 +157,18 @@ func scrape() {
 	}
 	// fmt.Println(categoriesList)
 
+
+
 	// Writing the marshalled JSON data to output.json
 	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
 	if err != nil {
 		panic(err)
 	}
+
+	// Serve to echo
+	e.GET("/scrape", func(f echo.Context) error {
+		return f.JSON(http.StatusOK, DataJSONarr)
+	})
 
 	e.Logger.Fatal(e.Start(":8000"))
 
