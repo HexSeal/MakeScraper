@@ -66,7 +66,7 @@ func scrape() {
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
 	var p []product
-	var categoryLink string
+	// var categoryLink string
 
 	var categoryName string
 	var categoryImage string
@@ -74,13 +74,11 @@ func scrape() {
 	// Scrape categories
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
 		e.ForEach("#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div > div > div > div", func(num int, h *colly.HTMLElement) {
-			// var p []product
-
 			// fmt.Println("Category Number:", num)
 
-			// Faster: create a string of common html elements,
+			// Faster: create a string of common html elements, make those a variables and avoid memory-expensive concatenation
 			categoryName = e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a")
-			categoryLink = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
+			categoryLink := e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
 			categoryImage = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
 
@@ -105,7 +103,7 @@ func scrape() {
 			// fmt.Println(count)
 			// productSelector := "#contentOverlay > div > app-cat-plp-page > div > app-search-result-page-gb > div.bottomContainer > div.rightSection.show-mobile > div.rightBottom > app-products-container > div > div > "
 
-			productName := g.ChildText("div:nth-child("+strconv.Itoa(count+1)+") > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+			productName := g.ChildText("div > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
 			productLink := g.ChildAttr("div > app-product-card > div > a.product-link", "href")
 			productPrice := g.ChildText("div > app-product-card > div > div.price-block.section > div.display-price > span")
 			productImage := g.ChildAttr("div > app-product-card > div > a.section.img-link > img", "src")
@@ -115,9 +113,8 @@ func scrape() {
 			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink} 
 			// fmt.Println(pl)
 			p = append(p, pl)
-			c.Visit(categoryLink)
+			// c.Visit(categoryLink)
 		})
-		
 	})
 
 	// GORM test, please ignore
@@ -168,7 +165,7 @@ func scrape() {
 
 	// Serve to echo
 	e.GET("/scrape", func(f echo.Context) error {
-		return f.JSON(http.StatusOK, DataJSONarr)
+		return f.JSON(http.StatusOK, categoriesList)
 	})
 
 	e.Logger.Fatal(e.Start(":8000"))
