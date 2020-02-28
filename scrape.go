@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+	// "net/http"
 	"strconv"
 	"time"
 
 	"github.com/gocolly/colly"
-	"github.com/labstack/echo/v4"
+	// "github.com/labstack/echo/v4"
 	// "github.com/jinzhu/gorm"
 	// _ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -38,10 +38,8 @@ type product struct {
 	Link  string `json:"productLink"`
 }
 
-
-
 func scrape() {
-		// Initialize gorm and the database
+	// Initialize gorm and the database
 	// db, err := gorm.Open("sqlite3", "test.db")
 	// if err != nil {
 	// 	panic("failed to connect database")
@@ -51,11 +49,10 @@ func scrape() {
 	// Migrate the schema
 	// db.AutoMigrate(&Category{})
 
-	// Instantiate default collector and echo object
-	e := echo.New()
+	// Instantiate default collector
 	c := colly.NewCollector()
 
-	// Limitations so our
+	// Limitations so our bot can't accidentally dox someone.
 	c.Limit(&colly.LimitRule{
 		// DomainGlob: "https://www.bjs.com/*",
 		RandomDelay: 1 * time.Second,
@@ -65,11 +62,6 @@ func scrape() {
 	// Get the Category
 	categorySelector := "#contentOverlay > div > app-content > div > div > div > div > div > div.bopic-hero > div > div > div"
 	var categoriesList []categories
-	var p []product
-	var categoryLink string
-
-	var categoryName string
-	var categoryImage string
 
 	// Scrape categories
 	c.OnHTML(categorySelector, func(e *colly.HTMLElement) {
@@ -77,104 +69,153 @@ func scrape() {
 			// fmt.Println("Category Number:", num)
 
 			// Faster: create a string of common html elements, make those a variables and avoid memory-expensive concatenation
-			categoryName = e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a")
-			categoryLink = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
-			categoryImage = e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a > img", "src")
+			categoryName := e.ChildText("div.bopic-hero > div > div > div > div > div > div:nth-child(" + strconv.Itoa(num+1) + ") > a")
+			categoryLink := e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a", "href")
+			categoryImage := e.ChildAttr("div.bopic-hero > div > div > div > div > div > div:nth-child("+strconv.Itoa(num+1)+") > a > img", "src")
 			// fmt.Println(categoryName, "\n", categoryLink)
 
 			//db.Create(&Category{Title: categoryName, Link: categoryLink, Image: categoryImage})
 			//db.Create(&Category{Title: breakfast, Link: reddit.com, Image: https://i.kym-cdn.com/entries/icons/original/000/027/475/Screen_Shot_2018-10-25_at_11.02.15_AM.png})
 
-			// Get the link for each category and visit it with the next OnHTML request so we can scrape all the products of said category
-			e.Request.Visit(categoryLink) // Add &pagesize=80 to get max number of products per page
-			
 			// Append the category data to the struct
-			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage, Products: p}
+			// productScrape := ScrapeProducts(categoryName, categoryLink)
+			d := categories{Title: categoryName, Link: categoryLink, Image: categoryImage}
 			categoriesList = append(categoriesList, d)
+
+			// e.Request.Visit(categoryLink)
 		})
-		//fmt.Println(categoriesList)
+		fmt.Println(categoriesList)
 		// e.Request.Visit(categoryLink)
-
-	})
-
-	// For each category, scrape all product data by following the category link
-	c.OnHTML("app-products-container > div > div", func(b *colly.HTMLElement) {
-		// fmt.Println("Product OnHTML request goes off")
-		fmt.Printf("\nCurrent link: %s", b.Request.URL)
-		b.ForEach("div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
-			// fmt.Println(count)
-
-			productName := g.ChildText("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
-			productLink := g.ChildAttr("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.product-link", "href")
-			productPrice := g.ChildText("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > div.price-block.section > div.display-price > span")
-			productImage := g.ChildAttr("div:nth-child("+ strconv.Itoa(count + 1)+") > app-product-card > div > a.section.img-link > img", "src")
-
-			// Adding individual products to the product list
-			fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
-			pl := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink} 
-			// fmt.Println(pl)
-			p = append(p, pl)
+		// Handle errors
+		c.OnError(func(_ *colly.Response, err error) {
+			log.Println("Something went wrong:", err)
 		})
+
+		// Alert when done scraping
+		c.OnScraped(func(r *colly.Response) {
+			//fmt.Println("Finished", r.Request.URL)
+		})
+
+		// After data is scraped, marshall to JSON
+		DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println(categoriesList)
+
+		// Writing the marshalled JSON data to output.json
+		err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
+		if err != nil {
+			panic(err)
+		}
+		c.Wait()
+
+		// GORM test, please ignore
+		// // Test GORM by reading the entry with id 1
+		// var testCat Category
+		// db.First(&testCat, 1)
+		// // Update - update product's price to 2000
+		// db.Model(&testCat).Update("Price", 2000)
+		// // Delete - delete product
+		// db.Delete(&testCat)
+
+		// return categoriesList
 	})
-
-	// GORM test, please ignore
-	// // Test GORM by reading the entry with id 1
-	// var testCat Category
-	// db.First(&testCat, 1)
-	// // Update - update product's price to 2000
-	// db.Model(&testCat).Update("Price", 2000)
-	// // Delete - delete product
-	// db.Delete(&testCat)
-
-
-	// Before making a request print "Visiting ..."
-	// c.OnRequest(func(r *colly.Request) {
-	// 	fmt.Println("Visiting", r.URL.String())
-	// })
-
-	// Workflow: visit --> wait for response --> grab --> visit --> grab products --> Write to output.json
-	// Start scraping BJ's wholesale site
+	// Start scraping bj's wholesale site
 	c.Visit("https://www.bjs.com/content?template=B&espot_main=EverydayEssentials&source=megamenu")
-	// fmt.Println(categoriesList)
-	// c.Visit("")
-
-	// Handle errors
-	c.OnError(func(_ *colly.Response, err error) {
-		log.Println("Something went wrong:", err)
-	})
-
-	// Alert when done scraping
-	c.OnScraped(func(r *colly.Response) {
-		//fmt.Println("Finished", r.Request.URL)
-	})
-
-	// After data is scraped, marshall to JSON
-	DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(categoriesList)
-
-
-
-	// Writing the marshalled JSON data to output.json
-	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
-	if err != nil {
-		panic(err)
-	}
-
-	// Serve to echo
-	e.GET("/scrape", func(f echo.Context) error {
-		return f.JSON(http.StatusOK, categoriesList)
-	})
-
-	e.Logger.Fatal(e.Start(":8000"))
-
-	c.Wait()
 }
+
+
+// // For each category, scrape all product data by following the category link
+// func ScrapeProducts(categoryName, categoryLink) {
+// 	// Instantiate default collector and echo object
+// 	c := colly.NewCollector()
+
+// 	// Limitations so our
+// 	c.Limit(&colly.LimitRule{
+// 		// DomainGlob: "https://www.bjs.com/*",
+// 		RandomDelay: 1 * time.Second,
+// 		// Parallelism: 2,
+// 	})
+
+// 	// For each category, scrape all product data by following the category link
+// 	c.OnHTML("app-products-container > div > div", func(b *colly.HTMLElement) {
+// 		// fmt.Println("Product OnHTML request goes off")
+// 		fmt.Printf("\nCurrent link: %s\n", b.Request.URL)
+// 			b.ForEach("div.rightBottom > app-products-container > div > div > div", func(count int, g *colly.HTMLElement) {
+// 				fmt.Println(count)
+
+// 				productName := g.ChildText("div:nth-child(" + strconv.Itoa(count+1) + ") > app-product-card > div > a.product-link > h2.product-title.section.d-none.d-sm-block")
+// 				productLink := g.ChildAttr("div:nth-child("+strconv.Itoa(count+1)+") > app-product-card > div > a.product-link", "href")
+// 				productPrice := g.ChildText("div:nth-child(" + strconv.Itoa(count+1) + ") > app-product-card > div > div.price-block.section > div.display-price > span")
+// 				productImage := g.ChildAttr("div:nth-child("+strconv.Itoa(count+1)+") > app-product-card > div > a.section.img-link > img", "src")
+				
+// 				// Get the category for the product
+// 				// Find the category inside categoriesList & save to theCategory
+// 				// categoryName :=
+
+// 				// theCategory := categoriesList[9]
+// 				// theCategoryLink := theCategory.Link
+
+// 				// Adding individual products to the product list
+// 				fmt.Printf("Product name: %v, Product Price: %v, Product Image: %v, Product Link: %v\n", productName, productPrice, productImage, productLink)
+// 				productInstance := product{Name: productName, Price: productPrice, Image: productImage, Link: productLink}
+// 				// fmt.Println(pl)
+// 				theCategory.Products = append(theCategory.Products, productInstance)
+
+// 				// theCategory.products = pl
+// 				b.Request.Visit(categoryLink)
+// 			})
+// 	})
+
+// // Make a new struct with categoryName and categoryLink and use them to visit products in a seperate category. Basically, seperate the scrape functions.
+
+
+// 	// Before making a request print "Visiting ..."
+// 	// c.OnRequest(func(r *colly.Request) {
+// 	// 	fmt.Println("Visiting", r.URL.String())
+// 	// })
+
+// 	// Workflow: visit --> wait for response --> grab --> visit --> grab products --> Write to output.json
+// 	// fmt.Println(categoriesList)
+// 	// c.Visit("")
+
+// 	// Handle errors
+// 	c.OnError(func(_ *colly.Response, err error) {
+// 		log.Println("Something went wrong:", err)
+// 	})
+
+// 	// Alert when done scraping
+// 	c.OnScraped(func(r *colly.Response) {
+// 		//fmt.Println("Finished", r.Request.URL)
+// 	})
+
+// 	// After data is scraped, marshall to JSON
+// 	DataJSONarr, err := json.MarshalIndent(categoriesList, "", "	")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	// fmt.Println(categoriesList)
+
+// 	// Writing the marshalled JSON data to output.json
+// 	err = ioutil.WriteFile("output.json", DataJSONarr, 0644)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	c.Wait()
+// }
 
 // main() contains code adapted from example found in Colly's docs:
 // http://go-colly.org/docs/examples/basic/
 func main() {
 	scrape()
+
+	// e := echo.New()
+	// // Serve to echo
+	// e.GET("/scrape", func(f echo.Context) error {
+	// 	return f.JSON(http.StatusOK, categoriesList)
+	// })
+
+	// e.Logger.Fatal(e.Start(":8000"))
 }
